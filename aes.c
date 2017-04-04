@@ -39,6 +39,7 @@ int main(int argc, char const *argv[]) {
   }
   printf(" plaintext\n");
 
+  generateKeySchedule();
   return 0;
 }
 
@@ -73,14 +74,18 @@ uint32_t getNextKeyColumn(uint32_t input, uint8_t rconValue) {
 }
 
 uint8_t* generateKeySchedule(){
-  uint32_t* answer = (uint32_t*) malloc(B/KEY_SIZE*sizeof(uint32_t));
-  memcpy(answer, &key, KEY_SIZE);
+  uint8_t rconIteration = 1;
+  uint32_t* keySchedule = (uint32_t*) malloc(B/4*sizeof(uint32_t));
 
-  uint8_t rconNumber = 1;
+  for (int i = 0; i < 4; i++) {
+    memcpy(&keySchedule[i], &key[i*4], sizeof(uint8_t) * 4);
+  }
 
-  answer[1] = getNextKeyColumn(answer[0], rconNumber);
+  // uint32_t newColumn = getNextKeyColumn(keySchedule[4], rconIteration);
+  // memcpy(keySchedule, &newColumn, sizeof(uint32_t));
 
-  uint32_t temp = answer[1];
+  print4xN((uint8_t*) keySchedule, 6);
+
 }
 
 void print4xN(uint8_t* buf, uint8_t N) {
