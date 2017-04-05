@@ -1,7 +1,7 @@
 # 128-bit AES encryptor
 This program implements AES 128-bit encryption in CBC mode for a variable number of rounds and iterations and a 16-byte key and plaintext
 
-##Usage
+## Usage
 	./aes <inputfile>
 
 Iterations and rounds represented by decimal integers and the key and plaintext represented as a 32-character block of hex
