@@ -11,9 +11,7 @@
 
 //constants for generating the key schedule
 #define KEY_SIZE 16
-#define B 176
-
-
+#define B (4+rounds*4)*4
 void parseFile(char* filename);
 uint8_t* generateKeySchedule();
 void print4xN(uint8_t* schedule, uint8_t N);
@@ -83,11 +81,17 @@ uint8_t* generateKeySchedule(){
     memcpy(&keySchedule[i], &key[i*4], sizeof(uint8_t) * 4);
   }
 
-  uint32_t newColumn = getNextKeyColumn(keySchedule[3], keySchedule[0], rconIteration);
-  memcpy(&keySchedule[4], &newColumn, sizeof(uint32_t));
+  for (int i = 4; i < B/4; i+=4) {
+    keySchedule[i] = getNextKeyColumn(keySchedule[i-1], keySchedule[i-4], rconIteration);
+    keySchedule[i+1] = keySchedule[i-3] ^ keySchedule[i];
+    keySchedule[i+2] = keySchedule[i-2] ^ keySchedule[i+1];
+    keySchedule[i+3] = keySchedule[i-1] ^ keySchedule[i+2];
+    rconIteration++;
+  }
 
-  print4xN((uint8_t*) keySchedule, 6);
+  // print4xN((uint8_t*) keySchedule, B/4);
 
+  return keySchedule;
 }
 
 void print4xN(uint8_t* buf, uint8_t N) {
