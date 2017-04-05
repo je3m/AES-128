@@ -1,6 +1,6 @@
 /* 
  * rcon.h
- * This header just contains the rcon table for generating
+ * This header contains the rcon table for generating
  * the key schedule
  */
 

@@ -35,50 +35,31 @@ static uint32_t* keySchedule;
 int main(int argc, char const *argv[]) {
   parseFile((char *)argv[1]);
 
-  // printf("%d iterations\n", iterations);
-  // printf("%d rounds\n", rounds);
-
-  // for (int i = 0; i < 16; i++){
-  //   printf("%02x ", key[i]);
-  // }
-  // printf(" key\n");
-  // for (int i = 0; i < 16; i++){
-  //   printf("%02x ", currentState[i]);
-  // }
-  // printf(" plaintext\n\n");
-
   generateKeySchedule();
 
   for (int i = 0; i < iterations; i++) {
+    //each iteration xors previous ciphertext with plaintext
     if (i > 0) {
       for (int j = 0; j < KEY_SIZE; j++){
         currentState[j] ^= plaintext[j];
       }
     }
+
+    //initial round key
     addRoundKey(0);
-    // printf("Initial addRoundKey\n");
-    // print4xN(currentState, 4);
 
     for (int i = 1; i < rounds+1; i++) {
-      // printf("*****ROUND %d******\n", i );
 
       subBytes();
-      // printf("SubBytes\n");
-      // print4xN(currentState, 4);
 
-      // printf("shift rows:\n");
       shiftRows();
-      // print4xN(currentState, 4);
 
+      //you do not mix columns on the last round
       if(i < rounds){
-        // printf("mix columns\n");
         mixColumns();
-        // print4xN(currentState, 4);
       }
 
-      // printf("add round key\n");
       addRoundKey(i);
-      // print4xN(currentState, 4);
     }
 
   }
@@ -90,22 +71,44 @@ int main(int argc, char const *argv[]) {
   return 0;
 }
 
+/**
+ * This function takes a filename with the number of iterations, rounds,
+ * key, and plaintext seperated by new line characters and populates the 
+ * corresponding global variables
+ */
 void parseFile(char* fileName) {
   FILE* input = fopen(fileName, "r");
-  fscanf(input, "%d%d", &iterations, &rounds);
+  if(input == NULL){
+     printf("ERROR READING INPUT FILE\n");
+    exit(1);
+  }
+  int match = fscanf(input, "%d%d", &iterations, &rounds);
+  if(match <= 0) {
+    printf("ERROR READING ITERATIONS OR ROUNDS\n");
+    exit(1);
+  }
 
   for (uint8_t i = 0; i < 16; i++){
-    fscanf(input, "%2hhx", &key[i]);
+    match = fscanf(input, "%2hhx", &key[i]);
+    if(match <= 0) {
+      printf("ERROR READING KEY\n");
+      exit(1);
+    }
   }
 
   for (int i = 0; i < 16; i++) {
-    fscanf(input, "%2hhx", &currentState[i]);
+    match = fscanf(input, "%2hhx", &currentState[i]);
+    if(match <= 0) {
+      printf("ERROR READING PLAINTEXT\n");
+      exit(1);
+    }
   }
   memcpy(plaintext, currentState, KEY_SIZE * sizeof(uint8_t));
 }
 
 /**
- * This function rotates a 32-bit integer 
+ * This function generates the first column of a new chunk of the round key schedule
+ * based on the previous column, the first in the last chunk and the chunk number 
  */
 uint32_t getNextKeyColumn(uint32_t input, uint32_t input2, uint8_t rconValue) {
   uint32_t shiftedInput = (input >> 8) | (input << 24); //perform rotate on input
@@ -123,6 +126,10 @@ uint32_t getNextKeyColumn(uint32_t input, uint32_t input2, uint8_t rconValue) {
   return shiftedInput;
 }
 
+/**
+ * This function is responsible for generating the entire key schedule for encryption
+ * and populating the global keySchedule
+ */
 void generateKeySchedule(){
   uint8_t rconIteration = 1;
   keySchedule = (uint32_t*) malloc(ROUND_KEY_BITS/4*sizeof(uint32_t));
@@ -138,20 +145,22 @@ void generateKeySchedule(){
     keySchedule[i+3] = keySchedule[i-1] ^ keySchedule[i+2];
     rconIteration++;
   }
-
-  // printf("ROUND KEY SCHEDULE: \n");
-  // print4xN((uint8_t*) keySchedule, ROUND_KEY_BITS/4);
 }
 
+/**
+ * Replaces each element in the current state with it's corresponding entry
+ * in the sbox
+ */
 void subBytes() {
   for (uint8_t i = 0; i < KEY_SIZE; i++) {
     currentState[i] = sbox[currentState[i]];
   }
 }
 
-
+/**
+ * Debug method for printing out any array in a 4xN matrix
+ */
 void print4xN(uint8_t* buf, uint8_t N) {
-
   for (int i = 0; i < 4; i++){
     for (int j = 0; j < N; j++) {
       printf("%02x ", buf[4*j+i]);
@@ -160,6 +169,10 @@ void print4xN(uint8_t* buf, uint8_t N) {
   }
 }
 
+/**
+ * Xors each entry in the currentState with values in the round key based
+ * on the round number
+ */
 void addRoundKey(uint32_t roundNumber) {
   for (int i = 0; i < KEY_SIZE; i++) {
     uint8_t* keyScheduleBytes = (uint8_t*) keySchedule;
@@ -167,6 +180,11 @@ void addRoundKey(uint32_t roundNumber) {
   }
 }
 
+/**
+ * Shifts the second column in the currentState left one
+ * Shifts the third column in the currentState left twice
+ * Shifts the fourth column in the currentState left three times
+ */
 void shiftRows() {
   uint8_t tmp, tmp1, tmp2;
 
@@ -195,6 +213,10 @@ void shiftRows() {
   currentState[15] = tmp2;
 }
 
+/**
+ * Performs a galois matrix multiplication for each column in currentState
+ */
+
 void mixColumns() {
   uint8_t base = 0;
   for (int i = 0; i < 4; i++) {
@@ -207,19 +229,16 @@ void mixColumns() {
                           currentState[base+2] ^
                           currentState[base+3];
 
-    // base++;
     currentState[base+1] = tmp1^ 
                           gmul2[currentState[base+1]] ^
                           gmul3[currentState[base+2]] ^
                           currentState[base+3];
 
-    // base++;
     currentState[base+2] = tmp1 ^ 
                           tmp2 ^
                           gmul2[currentState[base+2]] ^
                           gmul3[currentState[base+3]];
 
-    // base++;
     currentState[base+3] = gmul3[tmp1] ^ 
                           tmp2 ^
                           tmp3 ^
