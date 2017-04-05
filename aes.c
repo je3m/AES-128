@@ -35,17 +35,17 @@ static uint32_t* keySchedule;
 int main(int argc, char const *argv[]) {
   parseFile((char *)argv[1]);
 
-  printf("%d iterations\n", iterations);
-  printf("%d rounds\n", rounds);
+  // printf("%d iterations\n", iterations);
+  // printf("%d rounds\n", rounds);
 
-  for (int i = 0; i < 16; i++){
-    printf("%02x ", key[i]);
-  }
-  printf(" key\n");
-  for (int i = 0; i < 16; i++){
-    printf("%02x ", currentState[i]);
-  }
-  printf(" plaintext\n\n");
+  // for (int i = 0; i < 16; i++){
+  //   printf("%02x ", key[i]);
+  // }
+  // printf(" key\n");
+  // for (int i = 0; i < 16; i++){
+  //   printf("%02x ", currentState[i]);
+  // }
+  // printf(" plaintext\n\n");
 
   generateKeySchedule();
 
@@ -56,35 +56,37 @@ int main(int argc, char const *argv[]) {
       }
     }
     addRoundKey(0);
-    printf("Initial addRoundKey\n");
-    print4xN(currentState, 4);
+    // printf("Initial addRoundKey\n");
+    // print4xN(currentState, 4);
 
     for (int i = 1; i < rounds+1; i++) {
-      printf("*****ROUND %d******\n", i );
+      // printf("*****ROUND %d******\n", i );
 
       subBytes();
-      printf("SubBytes\n");
-      print4xN(currentState, 4);
+      // printf("SubBytes\n");
+      // print4xN(currentState, 4);
 
-      printf("shift rows:\n");
+      // printf("shift rows:\n");
       shiftRows();
-      print4xN(currentState, 4);
+      // print4xN(currentState, 4);
 
       if(i < rounds){
-        printf("mix columns\n");
+        // printf("mix columns\n");
         mixColumns();
-        print4xN(currentState, 4);
+        // print4xN(currentState, 4);
       }
 
-      printf("add round key\n");
+      // printf("add round key\n");
       addRoundKey(i);
-      print4xN(currentState, 4);
+      // print4xN(currentState, 4);
     }
-    for(int j = 0; j < 16; j++) {
-      printf("%02x", currentState[j]);
-    }
-    printf("\n");
+
   }
+
+  for(int j = 0; j < 16; j++) {
+      printf("%02x", currentState[j]);
+  }
+  printf("\n");
   return 0;
 }
 
@@ -137,8 +139,8 @@ void generateKeySchedule(){
     rconIteration++;
   }
 
-  printf("ROUND KEY SCHEDULE: \n");
-  print4xN((uint8_t*) keySchedule, ROUND_KEY_BITS/4);
+  // printf("ROUND KEY SCHEDULE: \n");
+  // print4xN((uint8_t*) keySchedule, ROUND_KEY_BITS/4);
 }
 
 void subBytes() {
