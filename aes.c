@@ -6,8 +6,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "rcon.h"
 #include "sbox.h"
+#include "mixColumnTable.h"
 
 //constants for generating the key schedule
 #define KEY_SIZE 16
@@ -20,6 +22,7 @@ void print4xN(uint8_t* schedule, uint8_t N);
 void subBytes();
 void addRoundKey(uint32_t roundNumber);
 void shiftRows();
+void mixColumns();
 
 static uint32_t iterations;
 static uint32_t rounds;
@@ -49,14 +52,27 @@ int main(int argc, char const *argv[]) {
   printf("Initial addRoundKey\n");
   print4xN(currentState, 4);
 
-  subBytes();
+  for (int i = 1; i < rounds+1; i++) {
+    printf("*****ROUND %d******\n", i );
 
-  printf("Initial SubBytes\n");
-  print4xN(currentState, 4);
+    subBytes();
+    printf("SubBytes\n");
+    print4xN(currentState, 4);
 
-  printf("shift rows:\n");
-  shiftRows();
-  print4xN(currentState, 4);
+    printf("shift rows:\n");
+    shiftRows();
+    print4xN(currentState, 4);
+
+    if(i < rounds){
+      printf("mix columns\n");
+      mixColumns();
+      print4xN(currentState, 4);
+    }
+
+    printf("add round key\n");
+    addRoundKey(i);
+    print4xN(currentState, 4);
+  }
 
   return 0;
 }
@@ -163,5 +179,37 @@ void shiftRows() {
   currentState[7] = tmp;
   currentState[11] = tmp1;
   currentState[15] = tmp2;
+}
 
+void mixColumns() {
+  uint8_t base = 0;
+  for (int i = 0; i < 4; i++) {
+    uint8_t tmp1 = currentState[base];
+    uint8_t tmp2 = currentState[base+1];
+    uint8_t tmp3 = currentState[base+2];
+
+    currentState[base] = gmul2[currentState[base]] ^ 
+                          gmul3[currentState[base+1]] ^
+                          currentState[base+2] ^
+                          currentState[base+3];
+
+    // base++;
+    currentState[base+1] = tmp1^ 
+                          gmul2[currentState[base+1]] ^
+                          gmul3[currentState[base+2]] ^
+                          currentState[base+3];
+
+    // base++;
+    currentState[base+2] = tmp1 ^ 
+                          tmp2 ^
+                          gmul2[currentState[base+2]] ^
+                          gmul3[currentState[base+3]];
+
+    // base++;
+    currentState[base+3] = gmul3[tmp1] ^ 
+                          tmp2 ^
+                          tmp3 ^
+                          gmul2[currentState[base+3]];
+    base += 4;
+  }
 }
