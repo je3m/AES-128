@@ -11,15 +11,20 @@
 
 //constants for generating the key schedule
 #define KEY_SIZE 16
-#define B (4+rounds*4)*4
+
+#define ROUND_KEY_BITS (4+rounds*4)*4 
+
 void parseFile(char* filename);
-uint8_t* generateKeySchedule();
+void generateKeySchedule();
 void print4xN(uint8_t* schedule, uint8_t N);
+void subBytes();
+void addRoundKey(uint32_t roundNumber);
 
 static uint32_t iterations;
 static uint32_t rounds;
 static uint8_t key[KEY_SIZE];
-static uint8_t plaintext[KEY_SIZE];
+static uint8_t currentState[KEY_SIZE];
+static uint32_t* keySchedule;
 
 
 int main(int argc, char const *argv[]) {
@@ -33,11 +38,20 @@ int main(int argc, char const *argv[]) {
   }
   printf(" key\n");
   for (int i = 0; i < 16; i++){
-    printf("%02x ", plaintext[i]);
+    printf("%02x ", currentState[i]);
   }
   printf(" plaintext\n\n");
 
   generateKeySchedule();
+
+  addRoundKey(0);
+  printf("Initial addRoundKey\n");
+  print4xN(currentState, 4);
+
+  // subBytes();
+
+  // printf("Initial SubBytes\n");
+  // print4xN(currentState, 4);
   return 0;
 }
 
@@ -50,7 +64,7 @@ void parseFile(char* fileName) {
   }
 
   for (int i = 0; i < 16; i++) {
-    fscanf(input, "%2hhx", &plaintext[i]);
+    fscanf(input, "%2hhx", &currentState[i]);
   }
 }
 
@@ -73,15 +87,15 @@ uint32_t getNextKeyColumn(uint32_t input, uint32_t input2, uint8_t rconValue) {
   return shiftedInput;
 }
 
-uint8_t* generateKeySchedule(){
+void generateKeySchedule(){
   uint8_t rconIteration = 1;
-  uint32_t* keySchedule = (uint32_t*) malloc(B/4*sizeof(uint32_t));
+  keySchedule = (uint32_t*) malloc(ROUND_KEY_BITS/4*sizeof(uint32_t));
 
   for (int i = 0; i < 4; i++) {
     memcpy(&keySchedule[i], &key[i*4], sizeof(uint8_t) * 4);
   }
 
-  for (int i = 4; i < B/4; i+=4) {
+  for (int i = 4; i < ROUND_KEY_BITS/4; i+=4) {
     keySchedule[i] = getNextKeyColumn(keySchedule[i-1], keySchedule[i-4], rconIteration);
     keySchedule[i+1] = keySchedule[i-3] ^ keySchedule[i];
     keySchedule[i+2] = keySchedule[i-2] ^ keySchedule[i+1];
@@ -89,10 +103,16 @@ uint8_t* generateKeySchedule(){
     rconIteration++;
   }
 
-  // print4xN((uint8_t*) keySchedule, B/4);
-
-  return keySchedule;
+  printf("ROUND KEY SCHEDULE: \n");
+  print4xN((uint8_t*) keySchedule, ROUND_KEY_BITS/4);
 }
+
+void subBytes() {
+  for (uint8_t i = 0; i < KEY_SIZE; i++) {
+    currentState[i] = sbox[currentState[i]];
+  }
+}
+
 
 void print4xN(uint8_t* buf, uint8_t N) {
 
@@ -101,5 +121,12 @@ void print4xN(uint8_t* buf, uint8_t N) {
       printf("%02x ", buf[4*j+i]);
     }
     printf("\n");
+  }
+}
+
+void addRoundKey(uint32_t roundNumber) {
+  for (int i = 0; i < KEY_SIZE; i++) {
+    uint8_t* keyScheduleBytes = (uint8_t*) keySchedule;
+    currentState[i] ^= keyScheduleBytes[KEY_SIZE*roundNumber+i];
   }
 }
