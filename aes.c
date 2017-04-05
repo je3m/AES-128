@@ -19,6 +19,7 @@ void generateKeySchedule();
 void print4xN(uint8_t* schedule, uint8_t N);
 void subBytes();
 void addRoundKey(uint32_t roundNumber);
+void shiftRows();
 
 static uint32_t iterations;
 static uint32_t rounds;
@@ -48,10 +49,15 @@ int main(int argc, char const *argv[]) {
   printf("Initial addRoundKey\n");
   print4xN(currentState, 4);
 
-  // subBytes();
+  subBytes();
 
-  // printf("Initial SubBytes\n");
-  // print4xN(currentState, 4);
+  printf("Initial SubBytes\n");
+  print4xN(currentState, 4);
+
+  printf("shift rows:\n");
+  shiftRows();
+  print4xN(currentState, 4);
+
   return 0;
 }
 
@@ -129,4 +135,33 @@ void addRoundKey(uint32_t roundNumber) {
     uint8_t* keyScheduleBytes = (uint8_t*) keySchedule;
     currentState[i] ^= keyScheduleBytes[KEY_SIZE*roundNumber+i];
   }
+}
+
+void shiftRows() {
+  uint8_t tmp, tmp1, tmp2;
+
+  //row 1
+  tmp = currentState[1];
+  currentState[1] = currentState[5];
+  currentState[5] = currentState[9];
+  currentState[9] = currentState[13];
+  currentState[13] = tmp;
+
+  //row 2
+  tmp = currentState[2];
+  tmp1 = currentState[6];
+  currentState[2] = currentState[10];
+  currentState[6] = currentState[14];
+  currentState[10] = tmp;
+  currentState[14] = tmp1;
+
+  //row3
+  tmp = currentState[3];
+  tmp1 = currentState[7];
+  tmp2 = currentState[11];
+  currentState[3] = currentState[15];
+  currentState[7] = tmp;
+  currentState[11] = tmp1;
+  currentState[15] = tmp2;
+
 }
