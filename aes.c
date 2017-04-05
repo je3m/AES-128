@@ -37,7 +37,7 @@ int main(int argc, char const *argv[]) {
   for (int i = 0; i < 16; i++){
     printf("%02x ", plaintext[i]);
   }
-  printf(" plaintext\n");
+  printf(" plaintext\n\n");
 
   generateKeySchedule();
   return 0;
@@ -59,14 +59,16 @@ void parseFile(char* fileName) {
 /**
  * This function rotates a 32-bit integer 
  */
-uint32_t getNextKeyColumn(uint32_t input, uint8_t rconValue) {
-  uint32_t shiftedInput = (input << 8) | (input >> 24); //perform rotate on input
+uint32_t getNextKeyColumn(uint32_t input, uint32_t input2, uint8_t rconValue) {
+  uint32_t shiftedInput = (input >> 8) | (input << 24); //perform rotate on input
 
   uint8_t* shiftedInputbuffer = (uint8_t*) &shiftedInput; //lets call it an array of bytes
 
   for (int i = 0; i < 4; i++) {
-    shiftedInputbuffer[i] = rsbox[shiftedInputbuffer[i]]; //replace bytes with sbox contents
+    shiftedInputbuffer[i] = sbox[shiftedInputbuffer[i]]; //replace bytes with sbox contents
   }
+
+  shiftedInput ^= input2;
 
   shiftedInputbuffer[0] ^=  rcon[rconValue];
 
@@ -81,8 +83,8 @@ uint8_t* generateKeySchedule(){
     memcpy(&keySchedule[i], &key[i*4], sizeof(uint8_t) * 4);
   }
 
-  // uint32_t newColumn = getNextKeyColumn(keySchedule[4], rconIteration);
-  // memcpy(keySchedule, &newColumn, sizeof(uint32_t));
+  uint32_t newColumn = getNextKeyColumn(keySchedule[3], keySchedule[0], rconIteration);
+  memcpy(&keySchedule[4], &newColumn, sizeof(uint32_t));
 
   print4xN((uint8_t*) keySchedule, 6);
 
