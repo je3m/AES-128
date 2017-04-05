@@ -27,6 +27,7 @@ void mixColumns();
 static uint32_t iterations;
 static uint32_t rounds;
 static uint8_t key[KEY_SIZE];
+static uint8_t plaintext[KEY_SIZE];
 static uint8_t currentState[KEY_SIZE];
 static uint32_t* keySchedule;
 
@@ -48,32 +49,42 @@ int main(int argc, char const *argv[]) {
 
   generateKeySchedule();
 
-  addRoundKey(0);
-  printf("Initial addRoundKey\n");
-  print4xN(currentState, 4);
-
-  for (int i = 1; i < rounds+1; i++) {
-    printf("*****ROUND %d******\n", i );
-
-    subBytes();
-    printf("SubBytes\n");
+  for (int i = 0; i < iterations; i++) {
+    if (i > 0) {
+      for (int j = 0; j < KEY_SIZE; j++){
+        currentState[j] ^= plaintext[j];
+      }
+    }
+    addRoundKey(0);
+    printf("Initial addRoundKey\n");
     print4xN(currentState, 4);
 
-    printf("shift rows:\n");
-    shiftRows();
-    print4xN(currentState, 4);
+    for (int i = 1; i < rounds+1; i++) {
+      printf("*****ROUND %d******\n", i );
 
-    if(i < rounds){
-      printf("mix columns\n");
-      mixColumns();
+      subBytes();
+      printf("SubBytes\n");
+      print4xN(currentState, 4);
+
+      printf("shift rows:\n");
+      shiftRows();
+      print4xN(currentState, 4);
+
+      if(i < rounds){
+        printf("mix columns\n");
+        mixColumns();
+        print4xN(currentState, 4);
+      }
+
+      printf("add round key\n");
+      addRoundKey(i);
       print4xN(currentState, 4);
     }
-
-    printf("add round key\n");
-    addRoundKey(i);
-    print4xN(currentState, 4);
+    for(int j = 0; j < 16; j++) {
+      printf("%02x", currentState[j]);
+    }
+    printf("\n");
   }
-
   return 0;
 }
 
@@ -88,6 +99,7 @@ void parseFile(char* fileName) {
   for (int i = 0; i < 16; i++) {
     fscanf(input, "%2hhx", &currentState[i]);
   }
+  memcpy(plaintext, currentState, KEY_SIZE * sizeof(uint8_t));
 }
 
 /**
